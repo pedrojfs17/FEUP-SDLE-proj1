@@ -3,5 +3,6 @@
 members = [
     "publisher",
     "subscriber",
+    "server",
     "provider",
 ]

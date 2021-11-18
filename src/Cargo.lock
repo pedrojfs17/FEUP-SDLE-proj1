@@ -63,6 +63,14 @@ dependencies = [
 name = "publisher"
 version = "0.1.0"
 dependencies = [
+ "provider",
+]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "provider",
  "zmq",
 ]
 
@@ -70,7 +78,7 @@ dependencies = [
 name = "subscriber"
 version = "0.1.0"
 dependencies = [
- "zmq",
+ "provider",
 ]
 
 [[package]]

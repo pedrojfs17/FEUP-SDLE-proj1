@@ -1,20 +1,15 @@
+use std::env;
+use provider;
+
 fn main() {
-    let context = zmq::Context::new();
-    let subscriber = context.socket(zmq::SUB).unwrap();
+    let args: Vec<String> = env::args().collect();
 
-    subscriber
-        .connect("tcp://localhost:5560")
-        .expect("failed to connect subscriber");
-
-    let subscriptions = vec!["testing".as_bytes(), "sdle".as_bytes()];
-
-    subscriber.set_subscribe(subscriptions[0]).unwrap();
-    subscriber.set_subscribe(subscriptions[1]).unwrap();
-
-    loop {
-        let topic = subscriber.recv_msg(0).unwrap();
-        let data = subscriber.recv_msg(0).unwrap();
-        assert!(&subscriptions.contains(&&topic[..]));
-        println!("[{}] {}", topic.as_str().unwrap(), data.as_str().unwrap());
+    if args.len() != 2 {
+        println!("Error: Subscribers must have an ID!\n\tUsage: ./subscriber <id>");
+        return;
     }
+
+    let socket = provider::connect_subscriber(args[1].as_bytes());
+
+    provider::subscribe(socket, "classes");
 }
