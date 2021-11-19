@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 fn main() {
     let context = zmq::Context::new();
     let socket = context.socket(zmq::ROUTER).unwrap();
+    socket.set_router_mandatory(true).unwrap();
 
     socket
         .bind("tcp://*:5559")
@@ -14,7 +15,7 @@ fn main() {
     loop {
         let (request_id, request) = read_message(&socket);
 
-        parse_request(&request_id, request, &mut topics);
+        parse_request(&request_id, request, &socket, &mut topics);
 
         for (topic, map) in &topics {
             println!("Topic: {}", topic);
@@ -22,8 +23,6 @@ fn main() {
                 println!("\t{} : {:?}", id, deq);
             }
         }
-
-        send_message(&socket, &request_id, "OK");
     }
 }
 
@@ -52,7 +51,7 @@ fn send_message(socket: &zmq::Socket, id: &String, message: &str) {
     socket.send(message, 0).unwrap();
 }
 
-fn parse_request(request_id: &String, request: String, topics: &mut HashMap<String, HashMap<String, VecDeque<String>>>) {
+fn parse_request(request_id: &String, request: String, socket: &zmq::Socket, topics: &mut HashMap<String, HashMap<String, VecDeque<String>>>) {
     let split = request.splitn(3, " ");
 
     let vec: Vec<_> = split.collect();
@@ -73,16 +72,42 @@ fn parse_request(request_id: &String, request: String, topics: &mut HashMap<Stri
 
                 topics.insert(vec[1].to_string(), topic_map);
             }
+
+            send_message(&socket, &request_id, "OK");
         },
 
         "UNSUB" => {
-            // TODO
-            // Go to topic -> Delete entry with key request_id
+            // Check if topic exists
+            if topics.contains_key(vec[1]) {
+                let topic_map = topics.get_mut(vec[1]).unwrap();
+
+                topic_map.remove(request_id);
+
+                send_message(&socket, &request_id, "OK");
+            } else {
+                send_message(&socket, &request_id, "NOK");
+            }
         },
 
         "GET" => {
-            // TODO
-            // Go to topic -> Check if contains_key with request_id -> If yes, go to queue and pop front, else return NOK
+            // Check if topic already exists
+            if topics.contains_key(vec[1]) {
+                let topic_map = topics.get_mut(vec[1]).unwrap();
+
+                // Check if topic does not have the susbcriber
+                if topic_map.contains_key(request_id) {
+                    let value = topic_map.get_mut(request_id).unwrap().pop_front();
+                    if value == None {
+                        send_message(&socket, &request_id, "OK");
+                    } else {
+                        send_message(&socket, &request_id, format!("OK {}", value.unwrap()).as_str());
+                    }
+                } else {
+                    send_message(&socket, &request_id, "NOK");
+                }
+            } else {                
+                send_message(&socket, &request_id, "NOK");
+            }
         },
 
         "PUT" => {
@@ -98,11 +123,12 @@ fn parse_request(request_id: &String, request: String, topics: &mut HashMap<Stri
                 let topic_map: HashMap<String, VecDeque<String>> = HashMap::new();
                 topics.insert(vec[1].to_string(), topic_map);
             }
+
+            send_message(&socket, &request_id, "OK");
         },
 
         _ => {
-            // TODO
-            // Error, send NOK or return any kind of error and send the NOK afterwards
+            send_message(&socket, &request_id, "NOK");
         },
     }
 

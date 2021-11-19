@@ -1,4 +1,6 @@
 use std::env;
+use std::thread;
+use std::time;
 use provider;
 
 fn main() {
@@ -11,5 +13,21 @@ fn main() {
 
     let socket = provider::connect_subscriber(args[1].as_bytes());
 
-    provider::subscribe(socket, "classes");
+    provider::subscribe(&socket, "classes");
+
+    let mut i = 0;
+
+    loop {
+        thread::sleep(time::Duration::from_secs(1));
+
+        provider::get(&socket, "classes");
+
+        i = i + 1;
+
+        if i == 20 {
+            break;
+        }
+    }
+
+    provider::unsubscribe(&socket, "classes");
 }
