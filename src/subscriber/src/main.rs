@@ -1,6 +1,6 @@
 use std::env;
-use std::thread;
-use std::time;
+// use std::thread;
+// use std::time;
 use provider;
 
 fn main() {
@@ -14,13 +14,18 @@ fn main() {
     let socket = provider::connect_subscriber(args[1].as_bytes());
 
     provider::subscribe(&socket, "classes");
+    provider::subscribe(&socket, "classes too");
 
     let mut i = 0;
 
     loop {
-        thread::sleep(time::Duration::from_secs(1));
+        // thread::sleep(time::Duration::from_secs(1));
 
-        provider::get(&socket, "classes");
+        if i % 2 == 0 {
+            provider::get(&socket, "classes");
+        } else {
+            provider::get(&socket, "classes too");
+        }
 
         i = i + 1;
 
@@ -30,4 +35,5 @@ fn main() {
     }
 
     provider::unsubscribe(&socket, "classes");
+    provider::unsubscribe(&socket, "classes too");
 }

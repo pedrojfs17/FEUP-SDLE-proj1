@@ -8,13 +8,17 @@ fn main() {
     let mut i = 1;
 
     loop {
+        provider::put(&socket, "classes", format!("Message {}", i).as_str());
+
         thread::sleep(time::Duration::from_secs(2));
 
-        provider::put(&socket, "classes", format!("Message {}", i).as_str());
+        provider::put(&socket, "classes too", format!("Message {}", i).as_str());
+
+        thread::sleep(time::Duration::from_secs(2));
 
         i = i + 1;
 
-        if i == 10 {
+        if i == 11 {
             break;
         }
     }
