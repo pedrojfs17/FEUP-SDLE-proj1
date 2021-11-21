@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
-// use serde_json;
-// use std::fs::File;
+use serde_json;
+use std::fs::File;
+use scheduled_thread_pool;
 // use std::thread;
-// use std::time;
+use std::time;
 
 fn main() {
     let context = zmq::Context::new();
@@ -18,7 +19,13 @@ fn main() {
     let mut topics: HashMap<String, HashMap<String, VecDeque<String>>> = HashMap::new();
     let mut pending_requests: HashMap<String, HashSet<String>> = HashMap::new();
 
-    // let mut file = File::create("state");
+    let file = File::create("state").unwrap();
+
+    let scheduled_thread_pool = scheduled_thread_pool::ScheduledThreadPool::new(1);
+
+    scheduled_thread_pool.execute_at_fixed_rate(time::Duration::from_secs(5), time::Duration::from_secs(5), move || {
+        routine_save(&file, &topics) }
+    );
 
     loop {
         let (request_id, request) = read_message(&socket);
@@ -34,9 +41,11 @@ fn main() {
     }
 }
 
-// fn routine_save(file: &File, topics: &HashMap<String, HashMap<String, VecDeque<String>>>) {
-//     serde_json::to_writer(file, topics);
-//  }
+fn routine_save(file: &File, topics: &HashMap<String, HashMap<String, VecDeque<String>>>) {
+    serde_json::to_writer(file, topics);
+}
+
+
 
 fn read_message(socket: &zmq::Socket) -> (String, String) {
     let request_id = socket
