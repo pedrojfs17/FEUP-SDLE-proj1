@@ -201,16 +201,12 @@ fn parse_request(request_id: &String, request: String, socket: &zmq::Socket) {
                     queue.push_back(String::from(msg.trim()));
                 }
 
-            } else {
-                let topic_map: HashMap<String, VecDeque<String>> = HashMap::new();
-                topics.insert(topic.to_string(), topic_map);
-            }
+                drop(topics);
+
+                check_pending_requests(String::from(topic), socket);
+            } 
 
             send_message(&socket, &request_id, "OK");
-
-            drop(topics);
-
-            check_pending_requests(String::from(topic), socket);
         },
 
         _ => {
