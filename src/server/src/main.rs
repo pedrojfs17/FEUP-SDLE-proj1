@@ -166,6 +166,10 @@ fn parse_request(request_id: &String, request: String, socket: &zmq::Socket) {
             if topics.contains_key(topic) {
                 let topic_map = topics.get_mut(topic).unwrap();
                 topic_map.remove(request_id);
+
+                if topic_map.keys().len() == 0 {
+                    topics.remove(topic);
+                }
             }
             
             send_message(&socket, &request_id, "OK");

@@ -1,4 +1,4 @@
-pub fn connect_subscriber(id: &[u8]) -> zmq::Socket {
+pub fn connect(id: &[u8]) -> zmq::Socket {
     let context = zmq::Context::new();
     let socket = context.socket(zmq::REQ).unwrap();
 
@@ -6,20 +6,7 @@ pub fn connect_subscriber(id: &[u8]) -> zmq::Socket {
 
     socket
         .connect("tcp://localhost:5559")
-        .expect("failed to connect subscriber");
-    
-    return socket;
-}
-
-pub fn connect_publisher() -> zmq::Socket {
-    let context = zmq::Context::new();
-    let socket = context.socket(zmq::REQ).unwrap();
-    
-    socket.set_identity("PUB".as_bytes()).unwrap();
-
-    socket
-        .connect("tcp://localhost:5559")
-        .expect("failed to connect publisher");
+        .expect("failed to connect client");
     
     return socket;
 }

@@ -1,8 +1,7 @@
 [workspace]
 
 members = [
-    "publisher",
-    "subscriber",
+    "client",
     "server",
     "provider",
 ]
