@@ -13,21 +13,19 @@ cargo build
 
 In order to start the server please run the following command from the `src` folder:
 ```
-cargo run -p server
+cargo run -p server -- [-r|--reset-state]
 ```
 
-### Subscriber
+Where:
+- `<r>` or `reset-state` resets the server state .
 
-In order to start a subscriber please run the following command from the `src` folder:
+### Client (Subscriber/Publisher)
+
+In order to start a client please run the following command from the `src` folder:
 ```
-cargo run -p subscriber -- <id>
+cargo run -p client -- <id> [<mode>]
 ```
 Where:
-- `<id>` is the subscriber's ID
-
-### Publisher
-
-In order to start a publisher please run the following command from the `src` folder:
-```
-cargo run -p publisher
-```
+- `<id>` is the client's ID.
+- `<mode>` is the type of client, subscriber or publisher. If this parameter is omitted, the client is
+interactive and the user can change its behaviour.
