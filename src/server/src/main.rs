@@ -201,7 +201,7 @@ fn parse_request(request_id: &String, request: String, socket: &zmq::Socket) {
                     if value == None {
                         add_pending_request(String::from(topic), String::from(request_id));
                     } else {
-                        send_message(&socket, &request_id, value.unwrap().as_str());
+                        send_message(&socket, &request_id, format!("OK {}", value.unwrap()));
                     }
                 } else { //Not Subscribed
                     send_message(&socket, &request_id, "NS");

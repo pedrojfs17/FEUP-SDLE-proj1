@@ -31,13 +31,18 @@ pub fn get(socket: &zmq::Socket, topic: &str) {
     let message = format!("GET [{}]", topic);
     let response = message_to_server(socket, &message);
 
-    match response.as_str() {
+    let split: Vec<_> = response.splitn(2, " ").collect();
+
+    match split[0] {
         "NF" => {
             println!("Topic [{}] not found!",topic);
         },
         "NS" => {
             println!("Not subcribed to topic [{}]!",topic);
         },
+        "OK" => {
+            println!("Received message: {}", split[1]);
+        }
         _ => {
             println!("Msg: {}",response);
         }

@@ -51,6 +51,11 @@ fn interactive(id: &str) {
 
         let v: Vec<&str> = line.splitn(2, " ").collect();
 
+        if !v[0].chars().all(char::is_alphanumeric) {
+            println!("Topics can not have non alphanumeric chars!");
+            continue
+        }
+
         match v[0].to_uppercase().as_str() {
             "SUB" => provider::subscribe(&socket, v[1]),
             "UNSUB" => provider::unsubscribe(&socket, v[1]),
