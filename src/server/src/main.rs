@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
-use serde_json;
-use std::fs::File;
-use scheduled_thread_pool;
-use std::time;
-#[macro_use] extern crate lazy_static;
 use std::sync::Mutex;
+use std::fs::File;
+use std::time;
+use std::env;
+use serde_json;
+use scheduled_thread_pool;
+#[macro_use] extern crate lazy_static;
 
 lazy_static!(
     static ref TOPICS: Mutex<HashMap<String, HashMap<String, VecDeque<String>>>> = Mutex::new(HashMap::new());
@@ -22,7 +23,15 @@ fn main() {
         .bind("tcp://*:5559")
         .expect("failed binding socket");
 
-    recover_state();
+    let args: Vec<String> = env::args().collect();
+
+    println!("Server Starting!");
+
+    if !(args.len() == 2 && (args[1] == "-r" || args[1] == "--reset-status")) {
+        recover_state();
+    }
+
+    println!("Server Online!");
 
     let scheduled_thread_pool = scheduled_thread_pool::ScheduledThreadPool::new(1);
 
@@ -63,12 +72,16 @@ fn print_pending_requests() {
 }
 
 fn recover_state() {
+    println!("Recovering State...");
+
     let file = File::open("topics.json");
 
     if file.is_ok() {
         *TOPICS.lock().unwrap() = serde_json::from_reader(file.unwrap()).unwrap();
 
         print_topics();
+    } else {
+        println!("Topics state not found! Creating a new one...")
     }
 
     let file = File::open("pending.json");
@@ -77,6 +90,8 @@ fn recover_state() {
         *PENDING_REQUESTS.lock().unwrap() = serde_json::from_reader(file.unwrap()).unwrap();
 
         print_pending_requests();
+    } else {
+        println!("Pending requests state not found! Creating a new one...")
     }
 }
 
