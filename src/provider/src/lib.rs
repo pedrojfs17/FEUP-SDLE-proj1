@@ -6,7 +6,9 @@ pub fn connect(id: &[u8]) -> zmq::Socket {
 
     socket
         .connect("tcp://localhost:5559")
-        .expect("failed to connect client");
+        .expect("Failed to connect client");
+
+    message_to_server(&socket, "ONLINE");
     
     return socket;
 }

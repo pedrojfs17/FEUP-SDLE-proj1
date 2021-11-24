@@ -49,26 +49,27 @@ fn main() {
         parse_request(&request_id, request, &socket);
 
         print_topics();
+        print_pending_requests();
     }
 }
 
 fn print_topics() {
-    println!("TOPICS");
+    println!("---------- TOPICS ----------");
     for (topic, map) in TOPICS.lock().unwrap().iter() {
-        println!("{}:", topic);
+        println!("-> {}", topic);
         for (id, deq) in map {
             println!("\t{} : {:?}", id, deq);
         }
     }
-    println!();
+    println!("----------------------------\n");
 }
 
 fn print_pending_requests() {
-    println!("PENDING REQUESTS");
+    println!("----- PENDING REQUESTS -----");
     for (topic, set) in PENDING_REQUESTS.lock().unwrap().iter() {
-        println!("{} : {:?}", topic, set);
+        println!("-> {} : {:?}", topic, set);
     }
-    println!();
+    println!("----------------------------\n");
 }
 
 fn recover_state() {
@@ -152,9 +153,13 @@ fn parse_request(request_id: &String, request: String, socket: &zmq::Socket) {
 
     let action = split[0];
 
-    let start_bytes = split[1].find("[").unwrap_or(0) + 1;
-    let end_bytes = split[1].find("]").unwrap_or(split[1].len());
-    let topic = &split[1][start_bytes..end_bytes];
+    let start_bytes; let mut end_bytes = 0; let mut topic = "";
+
+    if split.len() >= 2 {
+        start_bytes = split[1].find("[").unwrap_or(0) + 1;
+        end_bytes = split[1].find("]").unwrap_or(split[1].len());
+        topic = &split[1][start_bytes..end_bytes];
+    }
 
     match action {
         "SUB" => {
@@ -197,11 +202,14 @@ fn parse_request(request_id: &String, request: String, socket: &zmq::Socket) {
 
                 // Check if topic does not have the susbcriber
                 if topic_map.contains_key(request_id) {
-                    let value = topic_map.get_mut(request_id).unwrap().pop_front();
-                    if value == None {
+                    let front = topic_map.get_mut(request_id).unwrap().pop_front();
+                    if front == None {
                         add_pending_request(String::from(topic), String::from(request_id));
                     } else {
-                        send_message(&socket, &request_id, format!("OK {}", value.unwrap()));
+                        let value = front.unwrap();
+                        if send_message(&socket, &request_id, format!("OK {}", value).as_str()) == -1 {
+                            topic_map.get_mut(request_id).unwrap().push_front(value);
+                        }
                     }
                 } else { //Not Subscribed
                     send_message(&socket, &request_id, "NS");
@@ -224,6 +232,28 @@ fn parse_request(request_id: &String, request: String, socket: &zmq::Socket) {
 
                 check_pending_requests(String::from(topic), socket);
             } 
+
+            send_message(&socket, &request_id, "OK");
+        },
+
+        "ONLINE" => {
+            let mut pending_requests = PENDING_REQUESTS.lock().unwrap();
+            let mut topics_to_remove: Vec<String> = Vec::new();
+
+            for (topic, set) in pending_requests.iter() {
+                if set.contains(request_id) {
+                    println!("User {} was waiting for topic [{}] but has crashed.", request_id, topic);
+                    topics_to_remove.push(String::from(topic));
+                }
+            }
+
+            for topic in topics_to_remove {
+                let topics_set = pending_requests.get_mut(&topic).unwrap();
+                topics_set.remove(request_id);
+                if topics_set.len() == 0 {
+                    pending_requests.remove(&topic);
+                }
+            }
 
             send_message(&socket, &request_id, "OK");
         },
@@ -256,8 +286,11 @@ fn check_pending_requests(topic: String, socket: &zmq::Socket) {
         let topic_map = topics.get_mut(&topic).unwrap();
 
         for id in requests.iter() {
-            let value = topic_map.get_mut(id).unwrap().pop_front();
-            send_message(&socket, &id, value.unwrap().as_str());
+            let value = topic_map.get_mut(id).unwrap().pop_front().unwrap();
+
+            if send_message(&socket, &id, format!("OK {}", value).as_str()) == -1 {
+                topic_map.get_mut(id).unwrap().push_front(value);
+            }
         }
 
         pending_requests.remove(&topic);
