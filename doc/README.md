@@ -1,5 +1,19 @@
 # Project 1 - Reliable Pub/Sub Service
 
+## Instalation
+
+This project was built using [Rust](https://www.rust-lang.org/). Please use the following commands to install Rust in Linux:
+
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+For the instalation: 
+
+```
+apt-get install libzmq3-dev
+```
+
 ## Compilation
 
 In order to compile the source code, please run the following command from the `src` folder:
