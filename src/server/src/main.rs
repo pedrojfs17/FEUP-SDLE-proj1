@@ -3,11 +3,15 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::sync::Mutex;
 use std::fs::File;
+use std::str;
 use std::time;
 use std::env;
 use serde_json;
 use scheduled_thread_pool;
 #[macro_use] extern crate lazy_static;
+
+// Testing
+// use std::thread;
 
 lazy_static!(
     static ref TOPICS: Mutex<HashMap<String, HashMap<String, VecDeque<String>>>> = Mutex::new(HashMap::new());
@@ -79,7 +83,6 @@ fn recover_state() {
 
     if file.is_ok() {
         *TOPICS.lock().unwrap() = serde_json::from_reader(file.unwrap()).unwrap();
-
         print_topics();
     } else {
         println!("Topics state not found! Creating a new one...")
@@ -89,7 +92,6 @@ fn recover_state() {
 
     if file.is_ok() {
         *PENDING_REQUESTS.lock().unwrap() = serde_json::from_reader(file.unwrap()).unwrap();
-
         print_pending_requests();
     } else {
         println!("Pending requests state not found! Creating a new one...")
@@ -97,48 +99,38 @@ fn recover_state() {
 }
 
 fn read_message(socket: &zmq::Socket) -> (String, String) {
-    let request_id = socket
-        .recv_string(0)
-        .expect("Failed receiving id")
-        .unwrap();
+    let result = socket.recv_multipart(0);
 
-    // Empty Packet
-    assert!(socket.recv_string(0).expect("Failed receiving empty").unwrap() == "");
+    match result {
+        Ok(message) => {
+            let id = match str::from_utf8(&message[0]) {
+                Ok(v) => String::from(v),
+                Err(_e) => "".to_string(),
+            };
 
-    let request = socket
-        .recv_string(0)
-        .expect("Failed receiving request")
-        .unwrap();
+            let request = match str::from_utf8(&message[2]) {
+                Ok(v) => String::from(v),
+                Err(_e) => "".to_string(),
+            };
 
-    println!("Recieved request from: {} -> {}", request_id, request);
-
-    return (request_id, request);
+            println!("Received request from: {} -> {}", id, request);
+            return (id, request);
+            
+        },
+        Err(e) => {
+            println!("Read Error: {:?}", e);
+            return ("".to_string(), "".to_string());
+        },
+    }
 }
 
 fn send_message(socket: &zmq::Socket, id: &String, message: &str) -> i32 {
-    let id_part_result = socket.send(id.as_bytes(), zmq::SNDMORE);
-    match id_part_result {
-        Ok(_v) => {},
-        Err(e) => {
-            println!("Result Error: {:?}", e);
-            return -1;
-        },
-    }
+    let result = socket.send_multipart([id.as_bytes(), "".as_bytes(), message.as_bytes()], 0);
 
-    let empty_part_result = socket.send("", zmq::SNDMORE);
-    match empty_part_result {
+    match result {
         Ok(_v) => {},
         Err(e) => {
-            println!("Result Error: {:?}", e);
-            return -1;
-        },
-    }
-
-    let message_result = socket.send(message, 0);
-    match message_result {
-        Ok(_v) => {},
-        Err(e) => {
-            println!("Result Error: {:?}", e);
+            println!("Send Error: {:?}", e);
             return -1;
         },
     }
