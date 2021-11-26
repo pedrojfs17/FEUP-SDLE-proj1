@@ -25,6 +25,7 @@ fn main() {
 
         // Publisher
         "pub1" => pub1(args[1].as_str()),
+        "pub2" => pub2(args[1].as_str()),
 
         // Intercative
         _ => interactive(args[1].as_str())
@@ -83,11 +84,11 @@ fn interactive(id: &str) {
 fn sub1(id: &str) {
     let socket = provider::connect(id.as_bytes());
 
-    provider::subscribe(&socket, "classes");
+    provider::subscribe(&socket, "sdle");
 
     let mut i = 0;
     loop {
-        provider::get(&socket, "classes");
+        provider::get(&socket, "sdle");
 
         i = i + 1;
 
@@ -96,7 +97,7 @@ fn sub1(id: &str) {
         }
     }
 
-    provider::unsubscribe(&socket, "classes");
+    provider::unsubscribe(&socket, "sdle");
 }
 
 fn pub1(id: &str) {
@@ -104,9 +105,9 @@ fn pub1(id: &str) {
 
     let mut i = 0;
     loop {
-        provider::put(&socket, "classes", format!("Message {}", i).as_str());
+        provider::put(&socket, "sdle", format!("Message {}", i).as_str());
 
-        thread::sleep(time::Duration::from_secs(2));
+        // thread::sleep(time::Duration::from_secs(2));
 
         i = i + 1;
 
@@ -119,8 +120,8 @@ fn pub1(id: &str) {
 fn sub2(id: &str) {
     let socket = provider::connect(id.as_bytes());
 
-    provider::subscribe(&socket, "classes");
-    provider::subscribe(&socket, "classes too");
+    provider::subscribe(&socket, "sdle");
+    provider::subscribe(&socket, "feup");
 
     let mut i = 0;
 
@@ -128,9 +129,9 @@ fn sub2(id: &str) {
         // thread::sleep(time::Duration::from_secs(1));
 
         if i % 2 == 0 {
-            provider::get(&socket, "classes");
+            provider::get(&socket, "sdle");
         } else {
-            provider::get(&socket, "classes too");
+            provider::get(&socket, "feup");
         }
 
         i = i + 1;
@@ -140,6 +141,27 @@ fn sub2(id: &str) {
         }
     }
 
-    provider::unsubscribe(&socket, "classes");
-    provider::unsubscribe(&socket, "classes too");
+    provider::unsubscribe(&socket, "sdle");
+    provider::unsubscribe(&socket, "feup");
+}
+
+fn pub2(id: &str) {
+    let socket = provider::connect(id.as_bytes());
+
+    let mut i = 0;
+    loop {
+        provider::put(&socket, "sdle", format!("Message {}", i).as_str());
+
+        // thread::sleep(time::Duration::from_secs(2));
+
+        provider::put(&socket, "feup", format!("Message {}", i).as_str());
+
+        // thread::sleep(time::Duration::from_secs(2));
+
+        i = i + 1;
+
+        if i == 10 {
+            break;
+        }
+    }
 }
